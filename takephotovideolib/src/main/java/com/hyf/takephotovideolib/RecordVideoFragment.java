@@ -293,8 +293,12 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
         protected String doInBackground(Void... voids) {
             String newFilePath = savePath + File.separator + System.currentTimeMillis()+".mp4";
 //            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -s 960x540 -r 30 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 2097k "+newFilePath;
-//            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -vf transpose=1 -s 960x540 -r 25 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 1024k "+newFilePath;
-            String commd = "ffmpeg -i "+filePath+" -vf scale=540:960 -acodec aac -vcodec h264 "+newFilePath;
+//            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -s 540x960 -r 25 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 1024k "+newFilePath;
+//            String commd = "ffmpeg -i "+filePath+" -vf scale=540:960 -acodec aac -vcodec h264 "+newFilePath;
+            String commd = String.format("ffmpeg -i %s -c:v libx264 %s  -c:a libfdk_aac %s",
+                    filePath,
+                    "-crf 40",
+                    newFilePath);
             int ret = FFmpegBridge.jxFFmpegCMDRun(commd);
             boolean success = ret ==0;
             Log.v(TAG,"视频压缩是否成功:::::"+success);
