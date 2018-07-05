@@ -1,6 +1,7 @@
 package com.hyf.takephotovideolib;
 
 import android.app.ProgressDialog;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -15,6 +16,7 @@ import android.widget.TextView;
 
 import com.hyf.takephotovideolib.view.RecordStartView;
 import com.hyf.takephotovideolib.view.SizeSurfaceView;
+import com.mabeijianxi.smallvideorecord2.jniinterface.FFmpegBridge;
 
 import java.io.File;
 
@@ -214,7 +216,10 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
 
     @Override
     public void onRecordFinish(final String videoPath) {
-        startPreview(VideoPlayFragment.FILE_TYPE_VIDEO, videoPath);
+        // 开启任务压缩视频
+
+        new CompressTask(videoPath).execute();
+        //startPreview(VideoPlayFragment.FILE_TYPE_VIDEO, videoPath);
     }
 
     @Override
@@ -266,6 +271,41 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
 
         } catch (Exception exception) {
             exception.printStackTrace();
+        }
+    }
+
+    // ——————————————————————————————————————————————————
+    private final class CompressTask extends AsyncTask<Void,Void,String>{
+        private String filePath;
+
+        public CompressTask(String filePath) {
+            this.filePath = filePath;
+        }
+
+        ProgressDialog dialog;
+        @Override
+        protected void onPreExecute() {
+            //dialog = ProgressDialog.show(getActivity(),"提示","处理视频中...",false,false);
+            Log.v(TAG,"开始视频压缩......");
+        }
+
+        @Override
+        protected String doInBackground(Void... voids) {
+            String newFilePath = savePath + File.separator + System.currentTimeMillis()+".mp4";
+//            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -s 960x540 -r 30 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 2097k "+newFilePath;
+//            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -vf transpose=1 -s 960x540 -r 25 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 1024k "+newFilePath;
+            String commd = "ffmpeg -i "+filePath+" -vf scale=540:960 -acodec aac -vcodec h264 "+newFilePath;
+            int ret = FFmpegBridge.jxFFmpegCMDRun(commd);
+            boolean success = ret ==0;
+            Log.v(TAG,"视频压缩是否成功:::::"+success);
+            return success?newFilePath:filePath;
+        }
+
+        @Override
+        protected void onPostExecute(String path) {
+            //if (dialog!=null) dialog.dismiss();
+            Log.v(TAG,"视频压缩完毕>>>"+path);
+            startPreview(VideoPlayFragment.FILE_TYPE_VIDEO,path);
         }
     }
 }
