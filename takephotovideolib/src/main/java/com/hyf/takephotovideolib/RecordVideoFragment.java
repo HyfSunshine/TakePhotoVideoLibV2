@@ -224,7 +224,7 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
         // 根据比例算出宽度
         int width = mRecordControl.getWindowWidth() * 960 / mRecordControl.getWindowHeight();
         // 开启任务压缩视频
-        new CompressTask(videoPath, mRecordControl.getOrientation(), width, mRecordControl.getDefaultVideoFrameRate()).execute();
+        new CompressTask(videoPath, mRecordControl.getOrientation(), width, mRecordControl.getDefaultVideoFrameRate(), mRecordControl.getCameraFacing()).execute();
         //startPreview(VideoPlayFragment.FILE_TYPE_VIDEO, videoPath);
     }
 
@@ -283,54 +283,64 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
     // ——————————————————————————————————————————————————
 
     /**
-     *  压缩视频的任务
+     * 压缩视频的任务
      */
     private final class CompressTask extends AsyncTask<Void, Void, String> {
         private String filePath;
         private int orientation;
         private int width;
         private int rate;
+        private int cameraId;
 
-        public CompressTask(String filePath, int orientation, int width, int rate) {
+        public CompressTask(String filePath, int orientation, int width, int rate, int cameraId) {
             this.filePath = filePath;
             this.orientation = orientation;
             this.width = width;
             this.rate = rate;
+            this.cameraId = cameraId;
         }
 
         ProgressDialog dialog;
 
         @Override
         protected void onPreExecute() {
+            Log.v(TAG, "compress video prepare()");
             dialog = ProgressDialog.show(getActivity(), "提示", "正在处理视频中...", false, false);
         }
 
         @Override
         protected String doInBackground(Void... voids) {
-            String newFilePath = savePath + File.separator + System.currentTimeMillis() + ".mp4";
-            String wh = isVertical(orientation) ? width + ":960" : "960:" + width;
+            long startTime = System.currentTimeMillis();
+            String newFilePath = getNewFilePath();
+//            String wh = isVertical(orientation) ? width + ":960" : "960:" + width;
+            String wh = isVertical(orientation) ? "-1:960" : "960:-1";
 //            int cropSize = Math.abs(540 - width) / 2;
 //            String commd = "ffmpeg -y -i " + filePath + " -vf scale=" + wh + " -r 25 -vf crop=" + wh + ":0:" + cropSize + " -acodec aac -vcodec h264 -b 1400k " + newFilePath;
             String commd = "ffmpeg -y -i " + filePath + " -vf scale=" + wh + " -r " + rate + " -acodec aac -vcodec h264 -vb 1400k " + newFilePath;
+            Log.v(TAG, "compress video command>>>>>" + commd);
             int ret = FFmpegBridge.jxFFmpegCMDRun(commd);
             boolean success = ret == 0;
-            Log.v(TAG,"compress video reslut:::::"+success);
+            Log.v(TAG, "compress video reslut>>>>>" + success);
             // 如果压缩成功 删除之前的视频
             File originFile = new File(filePath);
-            if (originFile.exists() && isDeleteOriginFile){
+            if (originFile.exists() && isDeleteOriginFile && success) {
                 originFile.delete();
             }
+            long endTime = System.currentTimeMillis();
+            Log.v(TAG, "compress video time>>>>>" + ((endTime - startTime) / 1000) + "s");
             return success ? newFilePath : filePath;
         }
 
         @Override
         protected void onPostExecute(String path) {
             if (dialog != null) dialog.dismiss();
+            Log.v(TAG, "compress video completed>>>>>" + path);
             startPreview(VideoPlayFragment.FILE_TYPE_VIDEO, path);
         }
 
         /**
-         *  判断用户拍摄视频是是否是  视屏 拍摄
+         * 判断用户拍摄视频是是否是  视屏 拍摄
+         *
          * @param orientation
          * @return
          */
@@ -339,6 +349,10 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
                 return true;
             }
             return false;
+        }
+
+        private String getNewFilePath() {
+            return savePath + File.separator + System.currentTimeMillis() + ".mp4";
         }
     }
 }

@@ -683,6 +683,11 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
                     }
                 }
             }
+
+            if (!hasSupportRate) {
+                defaultVideoFrameRate = supportedPreviewFrameRates.get(supportedPreviewFrameRates.size() - 1);
+                hasSupportRate = true;
+            }
         }
 
         WindowManager wm = (WindowManager) mActivity.getSystemService(Context.WINDOW_SERVICE);
@@ -741,9 +746,9 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
                         }
                     }
 
-                //如果相机不支持上述分辨率，使用中分辨率
+                //如果相机不支持上述分辨率，使用最大的那个预览分辨率
                 if (!hasSize) {
-                    int mediumResolution = resolutionList.size() / 2;
+                    int mediumResolution = resolutionList.size() - 1;
                     if (mediumResolution >= resolutionList.size())
                         mediumResolution = resolutionList.size() - 1;
                     previewSize = resolutionList.get(mediumResolution);
@@ -815,9 +820,9 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
                         }
                     }
 
-                //如果相机不支持上述分辨率，使用中分辨率
+                //如果相机不支持上述分辨率，使用最大的分辨率
                 if (!hasSize) {
-                    int mediumResolution = pictureSizeList.size() / 2;
+                    int mediumResolution = pictureSizeList.size() - 1;
                     if (mediumResolution >= pictureSizeList.size())
                         mediumResolution = pictureSizeList.size() - 1;
                     pictureSize = pictureSizeList.get(mediumResolution);
@@ -866,6 +871,19 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
                 if (!hasSize)
                     for (int i = 0; i < videoSizeList.size(); i++) {
                         Camera.Size size = videoSizeList.get(i);
+                        float scale = (float) size.height / (float) size.width;
+                        if (size != null && scale == 0.5625f) {
+                            videoSize = size;
+                            videoWidth = videoSize.width;
+                            videoHeight = videoSize.height;
+                            hasSize = true;
+                            break;
+                        }
+                    }
+
+                if (!hasSize)
+                    for (int i = 0; i < videoSizeList.size(); i++) {
+                        Camera.Size size = videoSizeList.get(i);
                         if (size != null && size.width == height && size.height == width) {
                             videoSize = size;
                             videoWidth = videoSize.width;
@@ -887,22 +905,10 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
                         }
                     }
 
-                if (!hasSize)
-                    for (int i = 0; i < videoSizeList.size(); i++) {
-                        Camera.Size size = videoSizeList.get(i);
-                        float scale = (float) size.height / (float) size.width;
-                        if (size != null && scale == 0.5625f) {
-                            videoSize = size;
-                            videoWidth = videoSize.width;
-                            videoHeight = videoSize.height;
-                            hasSize = true;
-                            break;
-                        }
-                    }
 
                 //如果相机不支持上述分辨率，使用中分辨率
                 if (!hasSize) {
-                    int mediumResolution = videoSizeList.size() / 2;
+                    int mediumResolution = videoSizeList.size() - 1;
                     if (mediumResolution >= videoSizeList.size())
                         mediumResolution = videoSizeList.size() - 1;
                     videoSize = videoSizeList.get(mediumResolution);

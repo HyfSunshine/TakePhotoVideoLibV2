@@ -11,6 +11,7 @@ import android.view.OrientationEventListener;
 
 import com.mabeijianxi.smallvideorecord2.jniinterface.FFmpegBridge;
 
+import java.io.File;
 import java.util.List;
 
 public class TakePhotoVideoActivity extends AppCompatActivity {
