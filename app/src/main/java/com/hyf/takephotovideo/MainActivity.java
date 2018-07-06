@@ -97,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                     })
                     .launch();
+        }else if (requestCode == 101 && resultCode == RESULT_CANCELED){
+            mCapturePhoto.deleted();
         }
     }
 
