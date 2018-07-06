@@ -26,6 +26,7 @@ import top.zibin.luban.OnCompressListener;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int DURATION = 10000;
 
     String savePath;
     String[] permiss = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA,
@@ -113,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
     @AfterPermissionGranted(requestCode)
     private void startRecordVideo() {
         if (EasyPermissions.hasPermissions(getContext(), permiss))
-            TakePhotoVideoHelper.startTakeVideo(this, 100, savePath, 15000);
+            TakePhotoVideoHelper.startTakeVideo(this, 100, savePath, DURATION);
         else
             EasyPermissions.requestPermissions(getActivity(), "申请获取相关权限", requestCode, permiss);
     }
@@ -121,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
     @AfterPermissionGranted(requestCode)
     private void startRecordPhotoVideo() {
         if (EasyPermissions.hasPermissions(getContext(), permiss))
-            TakePhotoVideoHelper.startTakePhotoVideo(this, 100, savePath, 15000);
+            TakePhotoVideoHelper.startTakePhotoVideo(this, 100, savePath, DURATION);
         else
             EasyPermissions.requestPermissions(getActivity(), "申请获取相关权限", requestCode, permiss);
     }

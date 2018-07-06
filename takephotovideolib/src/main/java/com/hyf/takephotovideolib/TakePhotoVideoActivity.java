@@ -11,7 +11,6 @@ import android.view.OrientationEventListener;
 
 import com.mabeijianxi.smallvideorecord2.jniinterface.FFmpegBridge;
 
-import java.io.File;
 import java.util.List;
 
 public class TakePhotoVideoActivity extends AppCompatActivity {
@@ -36,8 +35,9 @@ public class TakePhotoVideoActivity extends AppCompatActivity {
         RecordVideoUtils.setFullScreen(this);
         initIntent();
         initOrientationListener();
-        // jianxi
-        FFmpegBridge.initJXFFmpeg(true,savePath+ File.separator+"record.log");
+        // jianxi  控制log是否打印
+//        FFmpegBridge.initJXFFmpeg(true,savePath+ File.separator+"record.log");
+        FFmpegBridge.initJXFFmpeg(false,null);
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                     .beginTransaction()

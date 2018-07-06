@@ -46,6 +46,10 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
     private int videoWidth = 1280; // 录像宽
     private int videoHeight = 720; // 录像高
 
+    private int windowWidth;
+    private int windowHeight;
+    private int mOrientation; // 手机拍摄时的方向
+
     private int maxTime = 10000;//最大录制时间
     private long maxSize = 30 * 1024 * 1024;//最大录制大小 默认30m
     public Activity mActivity;
@@ -123,6 +127,7 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
         int orientation = ((TakePhotoVideoActivity) mActivity).getOrientation();
+        this.mOrientation = orientation;
         if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             // 前置
             mediaRecorder.setOrientationHint(270 - orientation);
@@ -180,7 +185,8 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
             //设置分辨率，应设置在格式和编码器设置之后
             mediaRecorder.setVideoSize(videoWidth, videoHeight);
-            mediaRecorder.setVideoEncodingBitRate(52 * defaultVideoFrameRate * 1024);
+//            mediaRecorder.setVideoEncodingBitRate(52 * defaultVideoFrameRate * 1024);
+            mediaRecorder.setVideoEncodingBitRate(6 * 1024 * 1024);
             mediaRecorder.setAudioEncodingBitRate(64100);
             mediaRecorder.setAudioSamplingRate(44100);
         }
@@ -233,6 +239,7 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
             public void onPictureTaken(byte[] data, Camera camera) {
                 try {
                     int orientation = ((TakePhotoVideoActivity) mActivity).getOrientation();
+                    mOrientation = orientation;
                     // 将图片保存在 DIRECTORY_DCIM 内存卡中
                     Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                     Matrix matrix = new Matrix();
@@ -307,6 +314,13 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
 //        });
     }
 
+
+    public void returnPreview() {
+        if (mCamera == null || mSurfaceHolder == null) return;
+        mIsPreviewing = false;
+        handleSurfaceChanged(mCamera);
+        startCameraPreview(mSurfaceHolder);
+    }
 
     @Override
     public void onInfo(MediaRecorder mediaRecorder, int what, int extra) {
@@ -510,6 +524,21 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
         return videoPath;
     }
 
+    public int getWindowWidth() {
+        return windowWidth;
+    }
+
+    public int getWindowHeight() {
+        return windowHeight;
+    }
+
+    public int getOrientation() {
+        return mOrientation;
+    }
+
+    public int getDefaultVideoFrameRate() {
+        return defaultVideoFrameRate;
+    }
 
     // —————————————————————内部使用的私有方法———————————————————————
 
@@ -659,6 +688,9 @@ public class RecordVideoControl implements MediaRecorder.OnInfoListener,
         WindowManager wm = (WindowManager) mActivity.getSystemService(Context.WINDOW_SERVICE);
         int width = wm.getDefaultDisplay().getWidth();
         int height = wm.getDefaultDisplay().getHeight();
+        windowWidth = width;
+        windowHeight = height;
+
         Log.v(TAG, "screen wh:" + width + "," + height);
         // 设置预览时的宽高
         {

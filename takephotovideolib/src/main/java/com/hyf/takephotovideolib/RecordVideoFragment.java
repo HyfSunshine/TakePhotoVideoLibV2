@@ -54,6 +54,9 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
     private TextView mRecordTV;
     private ImageView mCancel;
 
+    // 是否删除源文件
+    private static final boolean isDeleteOriginFile = true;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -216,9 +219,12 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
 
     @Override
     public void onRecordFinish(final String videoPath) {
+        // 重新预览
+        mRecordControl.returnPreview();
+        // 根据比例算出宽度
+        int width = mRecordControl.getWindowWidth() * 960 / mRecordControl.getWindowHeight();
         // 开启任务压缩视频
-
-        new CompressTask(videoPath).execute();
+        new CompressTask(videoPath, mRecordControl.getOrientation(), width, mRecordControl.getDefaultVideoFrameRate()).execute();
         //startPreview(VideoPlayFragment.FILE_TYPE_VIDEO, videoPath);
     }
 
@@ -256,13 +262,13 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
                             if (dialog != null) dialog.dismiss();
                             //切换fragment 预览刚刚的拍照
                             startPreview(VideoPlayFragment.FILE_TYPE_PHOTO, file.getAbsolutePath());
-                            if (photo.exists()) photo.delete();
+                            if (photo.exists() && isDeleteOriginFile) photo.delete();
                         }
 
                         @Override
                         public void onError(Throwable e) {
                             if (dialog != null) dialog.dismiss();
-                            Log.v(TAG, "compress photo error:::::" + e.getMessage());
+                            Log.e(TAG, "compress photo error:::::" + e.getMessage());
                             // 如果压缩失败  直接使用原图
                             startPreview(VideoPlayFragment.FILE_TYPE_PHOTO, photo.getAbsolutePath());
                         }
@@ -275,41 +281,64 @@ public class RecordVideoFragment extends BaseRecordFragment implements RecordSta
     }
 
     // ——————————————————————————————————————————————————
-    private final class CompressTask extends AsyncTask<Void,Void,String>{
-        private String filePath;
 
-        public CompressTask(String filePath) {
+    /**
+     *  压缩视频的任务
+     */
+    private final class CompressTask extends AsyncTask<Void, Void, String> {
+        private String filePath;
+        private int orientation;
+        private int width;
+        private int rate;
+
+        public CompressTask(String filePath, int orientation, int width, int rate) {
             this.filePath = filePath;
+            this.orientation = orientation;
+            this.width = width;
+            this.rate = rate;
         }
 
         ProgressDialog dialog;
+
         @Override
         protected void onPreExecute() {
-            //dialog = ProgressDialog.show(getActivity(),"提示","处理视频中...",false,false);
-            Log.v(TAG,"开始视频压缩......");
+            dialog = ProgressDialog.show(getActivity(), "提示", "正在处理视频中...", false, false);
         }
 
         @Override
         protected String doInBackground(Void... voids) {
-            String newFilePath = savePath + File.separator + System.currentTimeMillis()+".mp4";
-//            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -s 960x540 -r 30 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 2097k "+newFilePath;
-//            String commd = "ffmpeg -y -i "+filePath+" -strict experimental -s 540x960 -r 25 -aspect 16:9 -ab 48000 -ac 2 -ar 65536 -b 1024k "+newFilePath;
-//            String commd = "ffmpeg -i "+filePath+" -vf scale=540:960 -acodec aac -vcodec h264 "+newFilePath;
-            String commd = String.format("ffmpeg -i %s -c:v libx264 %s  -c:a libfdk_aac %s",
-                    filePath,
-                    "-crf 40",
-                    newFilePath);
+            String newFilePath = savePath + File.separator + System.currentTimeMillis() + ".mp4";
+            String wh = isVertical(orientation) ? width + ":960" : "960:" + width;
+//            int cropSize = Math.abs(540 - width) / 2;
+//            String commd = "ffmpeg -y -i " + filePath + " -vf scale=" + wh + " -r 25 -vf crop=" + wh + ":0:" + cropSize + " -acodec aac -vcodec h264 -b 1400k " + newFilePath;
+            String commd = "ffmpeg -y -i " + filePath + " -vf scale=" + wh + " -r " + rate + " -acodec aac -vcodec h264 -vb 1400k " + newFilePath;
             int ret = FFmpegBridge.jxFFmpegCMDRun(commd);
-            boolean success = ret ==0;
-            Log.v(TAG,"视频压缩是否成功:::::"+success);
-            return success?newFilePath:filePath;
+            boolean success = ret == 0;
+            Log.v(TAG,"compress video reslut:::::"+success);
+            // 如果压缩成功 删除之前的视频
+            File originFile = new File(filePath);
+            if (originFile.exists() && isDeleteOriginFile){
+                originFile.delete();
+            }
+            return success ? newFilePath : filePath;
         }
 
         @Override
         protected void onPostExecute(String path) {
-            //if (dialog!=null) dialog.dismiss();
-            Log.v(TAG,"视频压缩完毕>>>"+path);
-            startPreview(VideoPlayFragment.FILE_TYPE_VIDEO,path);
+            if (dialog != null) dialog.dismiss();
+            startPreview(VideoPlayFragment.FILE_TYPE_VIDEO, path);
+        }
+
+        /**
+         *  判断用户拍摄视频是是否是  视屏 拍摄
+         * @param orientation
+         * @return
+         */
+        private boolean isVertical(int orientation) {
+            if (orientation == 0 || orientation == 180) {
+                return true;
+            }
+            return false;
         }
     }
 }
